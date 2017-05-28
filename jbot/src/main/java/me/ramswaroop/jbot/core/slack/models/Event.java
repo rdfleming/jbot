@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import me.ramswaroop.jbot.core.slack.EventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +81,21 @@ public class Event {
     @JsonProperty("event_ts")
     private String eventTs;
     private Message message;
+
+    public boolean isType(EventType eventType) {
+        return type != null && type.equalsIgnoreCase(eventType.toString());
+    }
+
+    public boolean isType(EventType eventType, EventType ... others) {
+        if (type != null) {
+            if (type.equalsIgnoreCase(eventType.toString())) return true;
+
+            for (EventType et : others) {
+                if (type.equalsIgnoreCase(et.toString())) return true;
+            }
+        }
+        return false;
+    }
 
     public int getId() {
         return id;

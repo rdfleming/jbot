@@ -1,5 +1,6 @@
 package me.ramswaroop.jbot.core.slack;
 
+import me.ramswaroop.jbot.core.slack.models.Event;
 import me.ramswaroop.jbot.core.slack.models.RTM;
 import me.ramswaroop.jbot.core.slack.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,5 +73,23 @@ public class SlackService {
 
     public void setWebSocketUrl(String webSocketUrl) {
         this.webSocketUrl = webSocketUrl;
+    }
+
+    public void enrichEvent(Event event) {
+        if (event.getType() != null) {
+            if (event.getType().equalsIgnoreCase(EventType.IM_OPEN.name())) {
+                addDmChannel(event.getChannelId());
+            } else
+            if (event.getType().equalsIgnoreCase(EventType.MESSAGE.name())) {
+                if (event.getText() != null && event.getText().contains(getCurrentUser().getId())) { // direct mention
+                    event.setType(EventType.DIRECT_MENTION.name());
+                } else if (getDmChannels().contains(event.getChannelId())) { // direct message
+                    event.setType(EventType.DIRECT_MESSAGE.name());
+                }
+            }
+        } else { // slack does not send any TYPE for acknowledgement messages
+            event.setType(EventType.ACK.name());
+        }
+
     }
 }

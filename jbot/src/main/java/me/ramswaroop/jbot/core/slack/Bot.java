@@ -157,19 +157,7 @@ public abstract class Bot {
         ObjectMapper mapper = new ObjectMapper();
         try {
             Event event = mapper.readValue(textMessage.getPayload(), Event.class);
-            if (event.getType() != null) {
-                if (event.getType().equalsIgnoreCase(EventType.IM_OPEN.name())) {
-                    slackService.addDmChannel(event.getChannelId());
-                } else if (event.getType().equalsIgnoreCase(EventType.MESSAGE.name())) {
-                    if (event.getText() != null && event.getText().contains(slackService.getCurrentUser().getId())) { // direct mention
-                        event.setType(EventType.DIRECT_MENTION.name());
-                    } else if (slackService.getDmChannels().contains(event.getChannelId())) { // direct message
-                        event.setType(EventType.DIRECT_MESSAGE.name());
-                    }
-                }
-            } else { // slack does not send any TYPE for acknowledgement messages
-                event.setType(EventType.ACK.name());
-            }
+            slackService.enrichEvent(event);
 
             if (isConversationOn(event)) {
                 invokeChainedMethod(session, event);

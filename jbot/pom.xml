@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>jbot</artifactId>
+    <version>0.0.1-SNAPSHOT_MRW</version>
     <name>JBot</name>
     <description>LEGO for building bots. Make Slack, Facebook and Twitter bots in Java in minutes.</description>
     <url>https://github.com/ramswaroop/jbot</url>
