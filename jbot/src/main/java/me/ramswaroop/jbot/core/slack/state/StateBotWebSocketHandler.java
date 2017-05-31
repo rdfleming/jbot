@@ -16,7 +16,7 @@ import org.springframework.web.socket.client.WebSocketConnectionManager;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
-import java.lang.reflect.Method;
+import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,31 +31,18 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
     protected SlackService slackService;
 
     private ObjectMapper mapper = new ObjectMapper();
-    private Object stateBot;
+    private String token;
 
     private Map<String, List<StateExecutor>> stateMap = new HashMap<>();
     private Map<String, CurrentState> currentStateMap = new ConcurrentHashMap<>();
 
-    public StateBotWebSocketHandler(Object stateBot) {
-        this.stateBot = stateBot;
-
-
-        Method[] methods = stateBot.getClass().getMethods();
-        for (Method method : methods) {
-            if (method.isAnnotationPresent(StateController.class)) {
-                StateController state = method.getAnnotation(StateController.class);
-                addStateWrapper(new StateExecutor(method, state));
-            }
-        }
-
+    public StateBotWebSocketHandler(String token) {
+        this.token = token;
     }
 
-    public void init(ApplicationContext applicationContext) {
-        if (stateBot.getClass().isAnnotationPresent(StateBot.class)) {
-            StateBot sBot = stateBot.getClass().getAnnotation(StateBot.class);
-            String token = applicationContext.getEnvironment().resolvePlaceholders(sBot.slackToken());
-            slackService.startRTM(token);
-        }
+    @PostConstruct
+    public void init() {
+        slackService.startRTM(token);
         if (slackService.getWebSocketUrl() != null) {
             WebSocketConnectionManager manager = new WebSocketConnectionManager(client(), this, slackService.getWebSocketUrl());
             manager.start();
@@ -64,7 +51,11 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
-    private void addStateWrapper(StateExecutor stateExecutor) {
+    public void addStateWrappers(List<StateExecutor> stateExecutor) {
+        stateExecutor.forEach(this::addStateWrapper);
+    }
+    
+    public void addStateWrapper(StateExecutor stateExecutor) {
         List<StateExecutor> stateList = stateMap
           .computeIfAbsent(stateExecutor.getState(),
             k -> new ArrayList<>());
@@ -91,7 +82,7 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
         List<StateExecutor> executorList = stateMap.get(CurrentState.GLOBAL_STATE);
         if (executorList != null) {
             for (StateExecutor stateExecutor : executorList) {
-                if (stateExecutor.handle(stateBot, session, event, currentState)) {
+                if (stateExecutor.handle(session, event, currentState)) {
                     logger.debug("Executed global state handler");
                     return;
                 }
@@ -106,7 +97,7 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
         }
 
         for (StateExecutor stateExecutor : executorList) {
-            if (stateExecutor.handle(stateBot, session, event, currentState)) {
+            if (stateExecutor.handle(session, event, currentState)) {
                 logger.debug("Executed state handler for state: {}", stateExecutor.getState());
                 return;
             }
