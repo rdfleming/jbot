@@ -3,7 +3,7 @@ package me.ramswaroop.jbot.core.slack.builder;
 import me.ramswaroop.jbot.core.slack.state.CurrentState;
 import me.ramswaroop.jbot.core.slack.state.Executor;
 import me.ramswaroop.jbot.core.slack.state.StateBotWebSocketHandler;
-import me.ramswaroop.jbot.core.slack.state.StateExecutor;
+import me.ramswaroop.jbot.core.slack.state.StateExecutorHandler;
 import me.ramswaroop.jbot.core.slack.state.executor.ReplyExecutor;
 import me.ramswaroop.jbot.core.slack.state.executor.StoreExecutor;
 import me.ramswaroop.jbot.core.slack.state.executor.StoreGroupExecutor;
@@ -17,7 +17,7 @@ public class BotBuilder {
 
     private String state;
     private int statusCount = 0;
-    private List<StateExecutor> stateExecutorList = new ArrayList<>();
+    private List<StateExecutorHandler> stateExecutorList = new ArrayList<>();
 
 
     public BotBuilder(String slackToken) {
@@ -60,7 +60,7 @@ public class BotBuilder {
 
         public BotBuilder reply(String value){
             stateExecutorList.add(
-              new StateExecutor(
+              new StateExecutorHandler(
                 new ReplyExecutor(value, CurrentState.START_STATE),
                 "(?s).*", state)
             );
@@ -115,25 +115,25 @@ public class BotBuilder {
         public PatternState andThen() {
             String newState = "STATE_"+statusCount++;
             executor.setState(newState);
-            stateExecutorList.add(new StateExecutor(executor, when.pattern, state));
+            stateExecutorList.add(new StateExecutorHandler(executor, when.pattern, state));
             state = newState;
             return new PatternState(builder);
         }
 
         public When when(String pattern) {
-            stateExecutorList.add(new StateExecutor(executor, when.pattern, state));
+            stateExecutorList.add(new StateExecutorHandler(executor, when.pattern, state));
             return new When(builder, pattern);
         }
 
         public BotBuilder toStartState(){
             executor.setState(CurrentState.START_STATE);
-            stateExecutorList.add(new StateExecutor(executor, when.pattern, state));
+            stateExecutorList.add(new StateExecutorHandler(executor, when.pattern, state));
             return builder;
         }
 
         public BotBuilder toState(String state){
             executor.setState(state);
-            stateExecutorList.add(new StateExecutor(executor, when.pattern, state));
+            stateExecutorList.add(new StateExecutorHandler(executor, when.pattern, state));
             return builder;
         }
 
@@ -150,7 +150,7 @@ public class BotBuilder {
         }
 
         public PatternState repeat(String value){
-            stateExecutorList.add(new StateExecutor(new ReplyExecutor(value, state), pattern, state));
+            stateExecutorList.add(new StateExecutorHandler(new ReplyExecutor(value, state), pattern, state));
             return new PatternState(builder);
         }
 
@@ -167,7 +167,7 @@ public class BotBuilder {
         }
 
         public BotBuilder handle(Executor executor){
-            stateExecutorList.add(new StateExecutor(executor, pattern, state));
+            stateExecutorList.add(new StateExecutorHandler(executor, pattern, state));
             return builder;
         }
 

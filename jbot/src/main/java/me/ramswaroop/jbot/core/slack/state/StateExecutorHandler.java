@@ -6,20 +6,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class StateExecutor {
+public class StateExecutorHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(StateExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(StateExecutorHandler.class);
 
     private String state;
     private Pattern pattern;
     private Executor executor;
 
-    public StateExecutor( Executor executor, String patternString, String state) {
+    public StateExecutorHandler(Executor executor, String patternString, String state) {
         this.state = state;
         this.executor = executor;
 

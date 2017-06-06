@@ -7,7 +7,6 @@ import me.ramswaroop.jbot.core.slack.models.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.web.socket.BinaryMessage;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -33,7 +32,7 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
     private ObjectMapper mapper = new ObjectMapper();
     private String token;
 
-    private Map<String, List<StateExecutor>> stateMap = new HashMap<>();
+    private Map<String, List<StateExecutorHandler>> stateMap = new HashMap<>();
     private Map<String, CurrentState> currentStateMap = new ConcurrentHashMap<>();
 
     public StateBotWebSocketHandler(String token) {
@@ -51,12 +50,12 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
-    public void addStateWrappers(List<StateExecutor> stateExecutor) {
+    public void addStateWrappers(List<StateExecutorHandler> stateExecutor) {
         stateExecutor.forEach(this::addStateWrapper);
     }
     
-    public void addStateWrapper(StateExecutor stateExecutor) {
-        List<StateExecutor> stateList = stateMap
+    public void addStateWrapper(StateExecutorHandler stateExecutor) {
+        List<StateExecutorHandler> stateList = stateMap
           .computeIfAbsent(stateExecutor.getState(),
             k -> new ArrayList<>());
         stateList.add(stateExecutor);
@@ -72,6 +71,9 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
                 k -> new CurrentState(CurrentState.HELLO_STATE));
 
             execute(currentState, session, event);
+        } else
+        if (event.isType(EventType.ERROR)) {
+            logger.error("Error received from Slack {}", event.getError());
         } else {
             logger.debug("Received type {}", event.getType());
         }
@@ -79,9 +81,9 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
 
     private void execute(CurrentState currentState , WebSocketSession session, Event event) {
         // Handle GLOBAL state first
-        List<StateExecutor> executorList = stateMap.get(CurrentState.GLOBAL_STATE);
+        List<StateExecutorHandler> executorList = stateMap.get(CurrentState.GLOBAL_STATE);
         if (executorList != null) {
-            for (StateExecutor stateExecutor : executorList) {
+            for (StateExecutorHandler stateExecutor : executorList) {
                 if (stateExecutor.handle(session, event, currentState)) {
                     logger.debug("Executed global state handler");
                     return;
@@ -96,7 +98,7 @@ public class StateBotWebSocketHandler extends AbstractWebSocketHandler {
             return;
         }
 
-        for (StateExecutor stateExecutor : executorList) {
+        for (StateExecutorHandler stateExecutor : executorList) {
             if (stateExecutor.handle(session, event, currentState)) {
                 logger.debug("Executed state handler for state: {}", stateExecutor.getState());
                 return;

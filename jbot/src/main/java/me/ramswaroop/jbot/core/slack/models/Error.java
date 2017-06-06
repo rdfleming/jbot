@@ -25,4 +25,9 @@ public class Error {
     public void setMsg(String msg) {
         this.msg = msg;
     }
+
+    @Override
+    public String toString() {
+        return "Error{" + "code=" + code + ", msg='" + msg + '\'' + '}';
+    }
 }
